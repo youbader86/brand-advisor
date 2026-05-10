@@ -629,7 +629,7 @@ export default function DesignGuideTool(props: Props) {
                     className="flex-1 flex items-center justify-center gap-2 border border-brand-border text-slate-400 hover:text-white hover:border-slate-400 py-3 rounded-2xl transition-all text-sm">
                     <Sparkles size={15} /> لوحة بديلة
                   </button>
-                  <button onClick={() => { setLogoConcepts(null); setStep(5); }}
+                  <button onClick={() => { setLogoConcepts([]); setStep(5); }}
                     className="flex-1 flex items-center justify-center gap-2 bg-brand-teal hover:bg-teal-400 text-slate-900 font-bold py-3 rounded-2xl transition-all">
                     التالي: أفكار الشعار →
                   </button>
