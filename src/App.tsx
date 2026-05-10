@@ -25,7 +25,6 @@ export default function App() {
   const [colorPalette, setColorPalette] = useState<ColorPalette | null>(null);
   const [logoConcepts, setLogoConcepts] = useState<LogoConcept[] | null>(null);
   const [selectedConcept, setSelectedConcept] = useState<LogoConcept | null>(null);
-  const [logoSketches, setLogoSketches] = useState<(string | null)[]>([]);
 
   function computeScores(ans: QuizAnswers): QuizResult {
     const totals: Record<string, number> = {};
@@ -61,7 +60,6 @@ export default function App() {
     setColorPalette(null);
     setLogoConcepts(null);
     setSelectedConcept(null);
-    setLogoSketches([]);
     setStage('intro');
   }
 
@@ -107,8 +105,8 @@ export default function App() {
           colorPalette={colorPalette} setColorPalette={setColorPalette}
           logoConcepts={logoConcepts} setLogoConcepts={setLogoConcepts}
           selectedConcept={selectedConcept} setSelectedConcept={setSelectedConcept}
-          logoSketches={logoSketches} setLogoSketches={setLogoSketches}
           onBack={() => setStage('results')}
+          onRestart={handleRestart}
         />
       )}
     </div>

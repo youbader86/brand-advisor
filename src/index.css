@@ -170,4 +170,65 @@
     position: fixed; top: 0; left: 0; width: 100%; direction: rtl;
     background: white; color: black; padding: 32px;
   }
+
+  body.print-report #full-report-print,
+  body.print-report #full-report-print * { visibility: visible; }
+  body.print-report #full-report-print {
+    position: fixed; top: 0; left: 0; width: 100%;
+    direction: rtl; background: white; color: #1a1a2e;
+    font-family: 'Noto Kufi Arabic', sans-serif;
+    overflow: visible;
+  }
 }
+
+/* ── Report Print Styles (.rpt-*) ──────────────── */
+#full-report-print { display: none; }
+
+.rpt-cover {
+  min-height: 100vh; display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 60px 48px; text-align: center;
+  border-bottom: 3px solid #2dd4bf;
+  page-break-after: always; break-after: page;
+}
+.rpt-cover-title { font-size: 48px; font-weight: 900; color: #1a1a2e; margin-bottom: 8px; }
+.rpt-cover-sub   { font-size: 18px; color: #475569; margin-bottom: 32px; }
+.rpt-badges      { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+.rpt-badge       { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; border: 2px solid currentColor; }
+.rpt-toc         { margin-top: 40px; text-align: right; width: 100%; max-width: 480px; }
+.rpt-toc-title   { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 12px; }
+.rpt-toc-item    { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; color: #1a1a2e; }
+
+.rpt-section        { padding: 48px; page-break-before: always; break-before: page; }
+.rpt-section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 32px; border-bottom: 2px solid #f1f5f9; padding-bottom: 16px; }
+.rpt-section-num    { font-size: 48px; font-weight: 900; color: #f1f5f9; line-height: 1; }
+.rpt-section-title  { font-size: 24px; font-weight: 800; color: #1a1a2e; }
+
+.rpt-grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.rpt-card    { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+.rpt-card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 8px; }
+.rpt-card-value { font-size: 15px; color: #1a1a2e; line-height: 1.7; }
+
+.rpt-quote { background: #f0fdfa; border-right: 4px solid #2dd4bf; padding: 20px 24px; border-radius: 8px; font-size: 18px; font-weight: 700; color: #134e4a; margin-bottom: 24px; font-style: italic; }
+
+.rpt-tags    { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpt-tag     { background: #f0fdfa; color: #0d9488; border: 1px solid #99f6e4; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.rpt-tag-gray { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 4px 12px; border-radius: 999px; font-size: 13px; }
+
+.rpt-body-text { font-size: 14px; color: #334155; line-height: 1.8; }
+
+.rpt-concept          { border: 2px solid #e2e8f0; border-radius: 16px; padding: 28px; margin-bottom: 24px; background: #ffffff; page-break-inside: avoid; break-inside: avoid; }
+.rpt-concept-selected { border-color: #2dd4bf; background: #f0fdfa; }
+.rpt-concept-title    { font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
+.rpt-concept-sub      { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+
+.rpt-swatch-strip  { display: flex; gap: 8px; margin-bottom: 16px; }
+.rpt-swatch-block  { flex: 1; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; page-break-inside: avoid; break-inside: avoid; }
+.rpt-swatch-color  { height: 80px; }
+.rpt-swatch-info   { padding: 12px; background: #f8fafc; }
+.rpt-swatch-name   { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
+.rpt-swatch-hex    { font-size: 12px; color: #64748b; font-family: monospace; margin-bottom: 2px; }
+.rpt-swatch-rgb    { font-size: 11px; color: #94a3b8; font-family: monospace; }
+.rpt-usage-row     { display: flex; gap: 8px; font-size: 12px; color: #475569; flex-wrap: wrap; margin-top: 6px; }
+
+.rpt-footer { text-align: center; padding: 32px 48px; border-top: 2px solid #f1f5f9; font-size: 12px; color: #94a3b8; }
