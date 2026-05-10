@@ -2,68 +2,160 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  font-family: 'Noto Kufi Arabic', sans-serif;
+@layer base {
+  * { font-family: 'Noto Kufi Arabic', sans-serif; }
+
+  body {
+    background-color: #070712;
+    color: #e2e8f0;
+    direction: rtl;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #070712; }
+  ::-webkit-scrollbar-thumb { background: #2dd4bf30; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2dd4bf60; }
+
+  /* Selection */
+  ::selection { background: #2dd4bf25; color: #2dd4bf; }
 }
 
-body {
-  background-color: #09090f;
-  color: #f8fafc;
-  direction: rtl;
+@layer components {
+  /* ── Card variants ─────────────────────────── */
+  .card {
+    background: #0c0c1a;
+    border: 1px solid #1a1a2e;
+  }
+
+  .card-elevated {
+    background: #111127;
+    border: 1px solid #232345;
+  }
+
+  /* Legacy alias */
+  .glass-card {
+    background: rgba(12, 12, 26, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1px solid #1a1a2e;
+  }
+
+  /* ── Input ─────────────────────────────────── */
+  .field {
+    @apply w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3
+           text-brand-text placeholder-brand-muted
+           focus:outline-none focus:border-brand-teal/60 focus:ring-1 focus:ring-brand-teal/20
+           transition-all text-sm;
+  }
+
+  .label {
+    @apply block text-xs text-brand-subtle mb-1.5 font-medium tracking-wide uppercase;
+  }
+
+  /* ── Buttons ───────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-brand-teal hover:bg-teal-400 active:bg-teal-500
+           text-slate-900 font-bold
+           px-6 py-3 rounded-xl
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2
+           border border-brand-teal/40 text-brand-teal
+           hover:border-brand-teal hover:bg-brand-teal/10
+           px-6 py-3 rounded-xl
+           transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           border border-brand-border text-brand-subtle
+           hover:border-brand-line hover:text-brand-text
+           px-5 py-2.5 rounded-xl text-sm
+           transition-all duration-200;
+  }
+
+  /* ── Accent bar ────────────────────────────── */
+  .accent-bar {
+    @apply border-r-2 border-brand-teal pr-4;
+  }
+
+  /* ── Step badge ────────────────────────────── */
+  .step-badge {
+    @apply flex items-center justify-center w-8 h-8 rounded-full
+           text-xs font-bold shrink-0;
+  }
+
+  /* ── Section header ─────────────────────────── */
+  .section-header {
+    @apply mb-8;
+  }
+  .section-header h2 {
+    @apply text-2xl font-bold text-brand-text mb-1;
+  }
+  .section-header p {
+    @apply text-sm text-brand-subtle;
+  }
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #13131d;
-}
-::-webkit-scrollbar-thumb {
-  background: #2dd4bf44;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #2dd4bf88;
+@layer utilities {
+  /* ── Animations ────────────────────────────── */
+  .fade-in {
+    animation: fadeIn 0.35s ease forwards;
+  }
+  .slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Glows ─────────────────────────────────── */
+  .glow-teal { box-shadow: 0 0 24px rgba(45, 212, 191, 0.12); }
+  .glow-gold { box-shadow: 0 0 24px rgba(245, 158, 11, 0.12); }
+
+  /* ── Hover teal border ─────────────────────── */
+  .hover-teal {
+    @apply border border-brand-border hover:border-brand-teal/40
+           transition-colors cursor-pointer;
+  }
+
+  /* ── Pulse ring (intro) ─────────────────────── */
+  .pulse-ring {
+    animation: pulseRing 3s ease-in-out infinite;
+  }
+  @keyframes pulseRing {
+    0%, 100% { opacity: 0.04; transform: translate(-50%, -50%) scale(1); }
+    50%       { opacity: 0.08; transform: translate(-50%, -50%) scale(1.04); }
+  }
+
+  /* ── Grid BG ────────────────────────────────── */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, #1a1a2e18 1px, transparent 1px),
+      linear-gradient(to bottom, #1a1a2e18 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 }
 
-.glass-card {
-  background: rgba(19, 19, 29, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(45, 212, 191, 0.1);
-}
-
-.glow-teal {
-  box-shadow: 0 0 30px rgba(45, 212, 191, 0.15);
-}
-
-.glow-gold {
-  box-shadow: 0 0 30px rgba(251, 191, 36, 0.15);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in {
-  animation: fadeIn 0.4s ease forwards;
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.05); opacity: 0.3; }
-  100% { transform: scale(1); opacity: 0.6; }
-}
-
-.pulse-ring {
-  animation: pulse-ring 2s ease-in-out infinite;
-}
-
+/* ── Print ───────────────────────────────────── */
 @media print {
   body * { visibility: hidden; }
+
   body.print-brief #brief-print,
   body.print-brief #brief-print * { visibility: visible; }
-  body.print-brief #brief-print { position: fixed; top: 0; left: 0; width: 100%; direction: rtl; }
+  body.print-brief #brief-print {
+    position: fixed; top: 0; left: 0; width: 100%; direction: rtl;
+  }
 
   body.print-palette #palette-print,
   body.print-palette #palette-print * { visibility: visible; }
