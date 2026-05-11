@@ -38,12 +38,6 @@ const STEPS = [
   { id: 6, label: 'التقرير',  sublabel: 'PDF كامل',    icon: BookOpen  },
 ];
 
-function printFullReport() {
-  document.body.classList.add('print-report');
-  window.print();
-  document.body.classList.remove('print-report');
-}
-
 export default function DesignGuideTool(props: Props) {
   const {
     quizResult, brandInput, setBrandInput,
@@ -67,6 +61,372 @@ export default function DesignGuideTool(props: Props) {
 
   const core = ARCHETYPES[quizResult.coreArchetype];
   const edge = ARCHETYPES[quizResult.edgeArchetype];
+
+  // ── PDF Report Generator ─────────────────────────────────────────
+  function downloadReport() {
+    const today = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    function hexToRgb(hex: string): string {
+      const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return r ? `${parseInt(r[1], 16)}, ${parseInt(r[2], 16)}, ${parseInt(r[3], 16)}` : '0, 0, 0';
+    }
+
+    const css = `
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Noto Kufi Arabic', Arial, sans-serif; direction: rtl; color: #1e293b; background: white; font-size: 14px; line-height: 1.7; }
+      .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 80px 60px; border-bottom: 4px solid ${core.color}; min-height: 100vh; page-break-after: always; break-after: page; }
+      .cover-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: #94a3b8; text-transform: uppercase; margin-bottom: 24px; }
+      .cover-brand { font-size: 52px; font-weight: 900; color: #0f172a; margin-bottom: 8px; }
+      .cover-sub { font-size: 18px; color: #64748b; margin-bottom: 8px; }
+      .cover-divider { width: 80px; height: 3px; border-radius: 2px; margin: 24px auto; }
+      .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 24px 0; }
+      .badge { padding: 8px 20px; border-radius: 999px; font-size: 13px; font-weight: 700; border: 2px solid; }
+      .cover-meta { color: #94a3b8; font-size: 13px; }
+      .toc { margin-top: 32px; }
+      .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #94a3b8; text-transform: uppercase; margin-bottom: 12px; }
+      .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 400px; margin: 0 auto; }
+      .toc-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #334155; font-weight: 600; text-align: right; }
+
+      .section { padding: 48px; page-break-before: always; break-before: page; }
+      .section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #f1f5f9; }
+      .section-num { font-size: 52px; font-weight: 900; color: #f0f4f8; line-height: 1; }
+      .section-accent { width: 4px; height: 40px; border-radius: 2px; flex-shrink: 0; }
+      .section-title { font-size: 26px; font-weight: 900; color: #0f172a; }
+
+      .quote { background: #f0fdfa; border-right: 5px solid #2dd4bf; padding: 20px 24px; border-radius: 0 12px 12px 0; font-size: 17px; font-weight: 700; color: #134e4a; margin-bottom: 24px; line-height: 1.8; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+      .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 18px; }
+      .card-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 8px; }
+      .card-value { font-size: 13px; color: #334155; line-height: 1.7; }
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .tag-teal { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #f0fdfa; color: #0d9488; border: 1px solid #99f6e4; }
+      .tag-gray { padding: 3px 10px; border-radius: 999px; font-size: 12px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+      .swatch-strip { display: flex; gap: 10px; margin-bottom: 20px; }
+      .swatch-block { flex: 1; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+      .swatch-color { height: 90px; }
+      .swatch-info { padding: 10px 12px; background: white; border-top: 1px solid #f1f5f9; }
+      .swatch-name { font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 2px; }
+      .swatch-hex { font-size: 11px; color: #64748b; font-family: monospace; margin-bottom: 1px; }
+      .swatch-rgb { font-size: 10px; color: #94a3b8; font-family: monospace; }
+
+      .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+      .do-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; }
+      .dont-card { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; }
+      .do-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #059669; margin-bottom: 10px; }
+      .dont-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #dc2626; margin-bottom: 10px; }
+      .do-dont li { margin-bottom: 5px; font-size: 13px; color: #334155; list-style: none; }
+
+      .usage-table { width: 100%; border-collapse: collapse; }
+      .usage-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+      .usage-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-left: 8px; vertical-align: middle; }
+
+      .concept { border: 2px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 18px; page-break-inside: avoid; break-inside: avoid; }
+      .concept-selected { border-color: #2dd4bf; background: #f0fdfa; }
+      .concept-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+      .concept-num { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: white; flex-shrink: 0; }
+      .concept-title { font-size: 19px; font-weight: 800; color: #0f172a; }
+      .concept-style { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+      .selected-badge { background: #2dd4bf; color: white; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-right: auto; white-space: nowrap; }
+
+      .footer { text-align: center; padding: 36px 48px; border-top: 2px solid #f1f5f9; background: #fafafa; }
+      .footer-brand { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+      .footer-sub { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+
+      @media print {
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .cover { page-break-after: always; break-after: page; }
+        .section { page-break-before: always; break-before: page; }
+      }
+    `;
+
+    let body = '';
+
+    // ── COVER ──
+    body += `
+      <div class="cover">
+        <p class="cover-eyebrow">Brand Identity Report · تقرير الهوية البصرية</p>
+        <h1 class="cover-brand">${brandInput.name || 'العلامة التجارية'}</h1>
+        ${brandInput.industry ? `<p class="cover-sub">${brandInput.industry}${brandInput.audience ? ' · ' + brandInput.audience : ''}</p>` : ''}
+        <div class="badges">
+          <span class="badge" style="border-color:${core.color};color:${core.color};">CORE · ${core.nameAr} (${core.nameEn})</span>
+          <span class="badge" style="border-color:${edge.color};color:${edge.color};">EDGE · ${edge.nameAr} (${edge.nameEn})</span>
+        </div>
+        <div class="cover-divider" style="background:${core.color};"></div>
+        <p class="cover-meta">${today} · مُعدّ بواسطة مستشار الهوية البصرية</p>
+        ${(brandEssence || selectedPath || creativeBrief || colorPalette || (logoConcepts && logoConcepts.length > 0)) ? `
+        <div class="toc">
+          <p class="toc-title">محتويات التقرير</p>
+          <div class="toc-grid">
+            ${brandEssence  ? '<div class="toc-item">١ · جوهر العلامة التجارية</div>' : ''}
+            ${selectedPath  ? '<div class="toc-item">٢ · التوجه الإبداعي</div>' : ''}
+            ${creativeBrief ? '<div class="toc-item">٣ · الموجز الإبداعي</div>' : ''}
+            ${colorPalette  ? '<div class="toc-item">٤ · لوحة الألوان</div>' : ''}
+            ${(logoConcepts && logoConcepts.length > 0) ? '<div class="toc-item">٥ · أفكار الشعار</div>' : ''}
+          </div>
+        </div>` : ''}
+      </div>
+    `;
+
+    // ── SECTION 1: Brand Essence ──
+    if (brandEssence) {
+      body += `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-num">١</span>
+            <div class="section-accent" style="background:${core.color};"></div>
+            <h2 class="section-title">جوهر العلامة التجارية</h2>
+          </div>
+          <div class="quote">"${brandEssence.essence}"</div>
+          <div class="grid-2">
+            <div class="card">
+              <p class="card-label">التموضع في السوق</p>
+              <p class="card-value">${brandEssence.positioning}</p>
+            </div>
+            <div class="card">
+              <p class="card-label">نبرة الصوت</p>
+              <p class="card-value">${brandEssence.brandVoice}</p>
+            </div>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <p class="card-label">القيمة الفريدة</p>
+            <p class="card-value">${brandEssence.uniqueValue}</p>
+          </div>
+          ${brandEssence.personality && brandEssence.personality.length > 0 ? `
+          <div style="margin-top:14px;">
+            <p class="card-label">سمات الشخصية</p>
+            <div class="tags">
+              ${brandEssence.personality.map(p => `<span class="badge" style="background:${core.color}12;color:${core.color};border:1px solid ${core.color}30;padding:4px 12px;font-size:12px;">${p}</span>`).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── SECTION 2: Visual Direction ──
+    if (selectedPath) {
+      body += `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-num">٢</span>
+            <div class="section-accent" style="background:#2dd4bf;"></div>
+            <h2 class="section-title">التوجه الإبداعي</h2>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+            <h3 style="font-size:22px;font-weight:800;color:#0f172a;">${selectedPath.title}</h3>
+            <span class="tag-teal">${selectedPath.mood}</span>
+          </div>
+          <p style="font-size:14px;color:#334155;line-height:1.8;margin-bottom:16px;">${selectedPath.description}</p>
+          <div class="grid-2">
+            <div class="card">
+              <p class="card-label">الكلمات المفتاحية</p>
+              <div class="tags">${selectedPath.keywords.map(k => `<span class="tag-gray">${k}</span>`).join('')}</div>
+            </div>
+            <div class="card">
+              <p class="card-label">الخطوط المقترحة</p>
+              <p class="card-value">${selectedPath.fontStyle}</p>
+            </div>
+          </div>
+          ${selectedPath.colors && selectedPath.colors.length > 0 ? `
+          <div style="margin-top:14px;">
+            <p class="card-label">لوحة الإلهام</p>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              ${selectedPath.colors.map(c => `<div style="width:48px;height:48px;border-radius:10px;background:${c};border:1px solid rgba(0,0,0,0.1);" title="${c}"></div>`).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── SECTION 3: Creative Brief ──
+    if (creativeBrief) {
+      body += `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-num">٣</span>
+            <div class="section-accent" style="background:#2dd4bf;"></div>
+            <h2 class="section-title">الموجز الإبداعي</h2>
+          </div>
+          <div class="grid-2">
+            ${[
+              { label: 'نظرة عامة',         value: creativeBrief.projectOverview },
+              { label: 'الهدف',              value: creativeBrief.objective },
+              { label: 'الجمهور المستهدف',   value: creativeBrief.targetAudience },
+              { label: 'شخصية العلامة',      value: creativeBrief.brandPersonality },
+              { label: 'نبرة الصوت',         value: creativeBrief.toneOfVoice },
+              { label: 'سيكولوجية الألوان',  value: creativeBrief.colorPsychology },
+              { label: 'توجه الخطوط',        value: creativeBrief.typographyDirection },
+              { label: 'توجه الشعار',        value: creativeBrief.logoDirection },
+            ].map(s => `
+              <div class="card">
+                <p class="card-label">${s.label}</p>
+                <p class="card-value">${s.value || '—'}</p>
+              </div>
+            `).join('')}
+          </div>
+          <div class="do-dont">
+            <div class="do-card">
+              <p class="do-title">✓ يجب أن تفعل</p>
+              <ul>${(creativeBrief.doList || []).map(item => `<li>✓ ${item}</li>`).join('')}</ul>
+            </div>
+            <div class="dont-card">
+              <p class="dont-title">✗ تجنّب</p>
+              <ul>${(creativeBrief.dontList || []).map(item => `<li>✗ ${item}</li>`).join('')}</ul>
+            </div>
+          </div>
+          ${creativeBrief.inspirations && creativeBrief.inspirations.length > 0 ? `
+          <div class="grid-2" style="margin-top:14px;">
+            <div class="card">
+              <p class="card-label">✦ علامات إلهام</p>
+              ${creativeBrief.inspirations.map(it => `<p class="card-value" style="margin-top:4px;">· ${it}</p>`).join('')}
+            </div>
+            <div class="card">
+              <p class="card-label">◆ المخرجات المطلوبة</p>
+              ${(creativeBrief.deliverables || []).map(d => `<p class="card-value" style="margin-top:4px;">· ${d}</p>`).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── SECTION 4: Color Palette ──
+    if (colorPalette) {
+      const swatches = [
+        colorPalette.primary, colorPalette.secondary,
+        colorPalette.accent, colorPalette.neutral, colorPalette.background,
+      ];
+      body += `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-num">٤</span>
+            <div class="section-accent" style="background:#2dd4bf;"></div>
+            <h2 class="section-title">لوحة الألوان</h2>
+          </div>
+          <div class="swatch-strip">
+            ${swatches.map(s => `
+              <div class="swatch-block">
+                <div class="swatch-color" style="background:${s.hex};"></div>
+                <div class="swatch-info">
+                  <p class="swatch-name">${s.nameAr}</p>
+                  <p class="swatch-hex">${s.hex}</p>
+                  <p class="swatch-rgb">rgb(${s.rgb || hexToRgb(s.hex)})</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <p class="card-label">المنطق اللوني</p>
+              <p class="card-value">${colorPalette.rationale}</p>
+            </div>
+            <div class="card">
+              <p class="card-label">سيكولوجية الألوان</p>
+              <p class="card-value">${colorPalette.psychologyNotes}</p>
+            </div>
+          </div>
+          ${colorPalette.usage ? `
+          <div class="card" style="margin-top:14px;">
+            <p class="card-label">دليل الاستخدام</p>
+            <table class="usage-table" style="margin-top:10px;">
+              <tr>
+                <td><span class="usage-dot" style="background:${colorPalette.primary.hex};"></span><strong>الرئيسي</strong></td>
+                <td>${colorPalette.usage.primary || ''}</td>
+              </tr>
+              <tr>
+                <td><span class="usage-dot" style="background:${colorPalette.secondary.hex};"></span><strong>الثانوي</strong></td>
+                <td>${colorPalette.usage.secondary || ''}</td>
+              </tr>
+              <tr>
+                <td><span class="usage-dot" style="background:${colorPalette.accent.hex};"></span><strong>المميز</strong></td>
+                <td>${colorPalette.usage.accent || ''}</td>
+              </tr>
+            </table>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── SECTION 5: Logo Concepts ──
+    if (logoConcepts && logoConcepts.length > 0) {
+      const conceptColors = [core.color, selectedPath?.colors?.[0] ?? '#2dd4bf', edge.color];
+      body += `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-num">٥</span>
+            <div class="section-accent" style="background:#f59e0b;"></div>
+            <h2 class="section-title">أفكار الشعار</h2>
+          </div>
+          ${logoConcepts.map((concept, i) => {
+            const cc = conceptColors[i] ?? core.color;
+            const isSel = selectedConcept?.id === concept.id;
+            return `
+              <div class="concept${isSel ? ' concept-selected' : ''}">
+                <div class="concept-header">
+                  <span class="concept-num" style="background:${cc};">${i + 1}</span>
+                  <div style="flex:1;">
+                    <p class="concept-title">${concept.title}</p>
+                    <p class="concept-style">${concept.style}</p>
+                  </div>
+                  ${isSel ? '<span class="selected-badge">✓ المختار</span>' : ''}
+                </div>
+                <p style="font-size:13px;color:#334155;line-height:1.7;margin-bottom:14px;">${concept.description}</p>
+                <div class="grid-2">
+                  <div class="card">
+                    <p class="card-label" style="color:${cc};">العناصر البصرية</p>
+                    <div class="tags">${(concept.visualElements || []).map(el => `<span class="tag-gray">${el}</span>`).join('')}</div>
+                  </div>
+                  <div class="card">
+                    <p class="card-label" style="color:${cc};">الرمزية والمعنى</p>
+                    <p class="card-value">${concept.symbolism}</p>
+                  </div>
+                  <div class="card">
+                    <p class="card-label" style="color:${cc};">استخدام الألوان</p>
+                    <p class="card-value">${concept.colorUsage}</p>
+                  </div>
+                  <div class="card">
+                    <p class="card-label" style="color:${cc};">توجه الخط</p>
+                    <p class="card-value">${concept.typography}</p>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // ── FOOTER ──
+    body += `
+      <div class="footer">
+        <p class="footer-brand">${brandInput.name || 'العلامة التجارية'}</p>
+        <p class="footer-sub" style="color:${core.color};">${core.nameAr} + ${edge.nameAr}</p>
+        <p class="footer-sub">${today} · مُعدّ بواسطة مستشار الهوية البصرية</p>
+      </div>
+    `;
+
+    const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقرير الهوية البصرية — ${brandInput.name || 'العلامة التجارية'}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>${css}</style>
+</head>
+<body>${body}</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); }, 900);
+    } else {
+      alert('يرجى السماح للنوافذ المنبثقة لتحميل التقرير');
+    }
+  }
 
   // ── Handlers ────────────────────────────────────────────────────
   async function handleLoadBrandEssence() {
@@ -159,273 +519,6 @@ export default function DesignGuideTool(props: Props) {
       {extra}
     </div>
   );
-
-  // ── PDF Print Layout (hidden on screen, shown on print) ─────────
-  const PrintReport = () => {
-    if (!brandEssence && !creativeBrief && !colorPalette && !logoConcepts) return null;
-    const today = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    return (
-      <div id="full-report-print" style={{ display: 'none' }}>
-        {/* ── COVER ── */}
-        <div className="rpt-cover">
-          <div className="rpt-cover-badge">Brand Identity Report · تقرير الهوية البصرية</div>
-          <h1 className="rpt-brand-name">{brandInput.name || 'العلامة التجارية'}</h1>
-          {brandInput.industry && <p className="rpt-industry">{brandInput.industry}</p>}
-          <div className="rpt-archetypes">
-            <span className="rpt-arch-badge" style={{ borderColor: core.color, color: core.color }}>
-              CORE · {core.nameAr}
-            </span>
-            <span className="rpt-arch-badge" style={{ borderColor: edge.color, color: edge.color }}>
-              EDGE · {edge.nameAr}
-            </span>
-          </div>
-          <div className="rpt-cover-meta">
-            <span>{today}</span>
-            <span>·</span>
-            <span>مُعدّ بواسطة مستشار الهوية البصرية</span>
-          </div>
-          <div className="rpt-cover-line" />
-          <div className="rpt-cover-contents">
-            <p className="rpt-contents-title">محتويات التقرير</p>
-            <div className="rpt-contents-grid">
-              {[
-                brandEssence    && '١ · جوهر العلامة',
-                selectedPath    && '٢ · التوجه الإبداعي',
-                creativeBrief   && '٣ · الموجز الإبداعي',
-                colorPalette    && '٤ · لوحة الألوان',
-                logoConcepts?.length && '٥ · أفكار الشعار',
-              ].filter(Boolean).map((item, i) => (
-                <span key={i} className="rpt-contents-item">{item as string}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── SECTION 1: Brand Essence ── */}
-        {brandEssence && (
-          <div className="rpt-section">
-            <div className="rpt-section-header" style={{ borderColor: core.color }}>
-              <span className="rpt-section-num">١</span>
-              <h2 className="rpt-section-title">جوهر العلامة التجارية</h2>
-            </div>
-            <blockquote className="rpt-quote">"{brandEssence.essence}"</blockquote>
-            <div className="rpt-grid-2">
-              <div className="rpt-card">
-                <p className="rpt-card-label">التموضع</p>
-                <p className="rpt-card-text">{brandEssence.positioning}</p>
-              </div>
-              <div className="rpt-card">
-                <p className="rpt-card-label">نبرة الصوت</p>
-                <p className="rpt-card-text">{brandEssence.brandVoice}</p>
-              </div>
-            </div>
-            <div className="rpt-card" style={{ marginTop: 12 }}>
-              <p className="rpt-card-label">القيمة الفريدة</p>
-              <p className="rpt-card-text">{brandEssence.uniqueValue}</p>
-            </div>
-            {brandEssence.personality?.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <p className="rpt-card-label">سمات الشخصية</p>
-                <div className="rpt-tags">
-                  {brandEssence.personality.map((p, i) => (
-                    <span key={i} className="rpt-tag" style={{ borderColor: core.color, color: core.color }}>{p}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── SECTION 2: Visual Direction ── */}
-        {selectedPath && (
-          <div className="rpt-section">
-            <div className="rpt-section-header" style={{ borderColor: '#2dd4bf' }}>
-              <span className="rpt-section-num">٢</span>
-              <h2 className="rpt-section-title">التوجه الإبداعي</h2>
-            </div>
-            <div className="rpt-path-header">
-              <h3 className="rpt-path-title">{selectedPath.title}</h3>
-              <span className="rpt-path-mood">{selectedPath.mood}</span>
-            </div>
-            <p className="rpt-body-text">{selectedPath.description}</p>
-            <div className="rpt-grid-2" style={{ marginTop: 12 }}>
-              <div className="rpt-card">
-                <p className="rpt-card-label">الكلمات المفتاحية</p>
-                <div className="rpt-tags">
-                  {selectedPath.keywords.map(k => <span key={k} className="rpt-tag-gray">{k}</span>)}
-                </div>
-              </div>
-              <div className="rpt-card">
-                <p className="rpt-card-label">الخطوط المقترحة</p>
-                <p className="rpt-card-text">{selectedPath.fontStyle}</p>
-              </div>
-            </div>
-            {selectedPath.colors?.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <p className="rpt-card-label">لوحة الإلهام</p>
-                <div className="rpt-swatch-row">
-                  {selectedPath.colors.map((c, i) => (
-                    <div key={i} className="rpt-swatch-small" style={{ background: c }} title={c} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── SECTION 3: Creative Brief ── */}
-        {creativeBrief && (
-          <div className="rpt-section">
-            <div className="rpt-section-header" style={{ borderColor: '#2dd4bf' }}>
-              <span className="rpt-section-num">٣</span>
-              <h2 className="rpt-section-title">الموجز الإبداعي</h2>
-            </div>
-            <div className="rpt-grid-2">
-              {[
-                { label: 'نظرة عامة',         value: creativeBrief.projectOverview },
-                { label: 'الهدف',              value: creativeBrief.objective },
-                { label: 'الجمهور المستهدف',   value: creativeBrief.targetAudience },
-                { label: 'شخصية العلامة',      value: creativeBrief.brandPersonality },
-                { label: 'نبرة الصوت',         value: creativeBrief.toneOfVoice },
-                { label: 'سيكولوجية الألوان',  value: creativeBrief.colorPsychology },
-                { label: 'توجه الخطوط',        value: creativeBrief.typographyDirection },
-                { label: 'توجه الشعار',        value: creativeBrief.logoDirection },
-              ].map(s => (
-                <div key={s.label} className="rpt-card">
-                  <p className="rpt-card-label">{s.label}</p>
-                  <p className="rpt-card-text">{s.value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-grid-2" style={{ marginTop: 12 }}>
-              <div className="rpt-card rpt-card-green">
-                <p className="rpt-card-label" style={{ color: '#059669' }}>✓ يجب أن تفعل</p>
-                <ul>{creativeBrief.doList.map((item, i) => <li key={i} className="rpt-list-item">✓ {item}</li>)}</ul>
-              </div>
-              <div className="rpt-card rpt-card-red">
-                <p className="rpt-card-label" style={{ color: '#dc2626' }}>✗ تجنّب</p>
-                <ul>{creativeBrief.dontList.map((item, i) => <li key={i} className="rpt-list-item">✗ {item}</li>)}</ul>
-              </div>
-            </div>
-            {creativeBrief.inspirations?.length > 0 && (
-              <div className="rpt-grid-2" style={{ marginTop: 12 }}>
-                <div className="rpt-card">
-                  <p className="rpt-card-label">✦ علامات إلهام</p>
-                  {creativeBrief.inspirations.map((it, j) => <p key={j} className="rpt-card-text">· {it}</p>)}
-                </div>
-                <div className="rpt-card">
-                  <p className="rpt-card-label">◆ المخرجات المطلوبة</p>
-                  {creativeBrief.deliverables.map((d, j) => <p key={j} className="rpt-card-text">· {d}</p>)}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── SECTION 4: Color Palette ── */}
-        {colorPalette && (
-          <div className="rpt-section">
-            <div className="rpt-section-header" style={{ borderColor: '#2dd4bf' }}>
-              <span className="rpt-section-num">٤</span>
-              <h2 className="rpt-section-title">لوحة الألوان</h2>
-            </div>
-            {/* Big swatch strip */}
-            <div className="rpt-swatch-strip">
-              {[colorPalette.primary, colorPalette.secondary, colorPalette.accent, colorPalette.neutral, colorPalette.background].map((s, i) => (
-                <div key={i} className="rpt-swatch-block">
-                  <div className="rpt-swatch-color" style={{ background: s.hex }} />
-                  <div className="rpt-swatch-info">
-                    <p className="rpt-swatch-name">{s.nameAr}</p>
-                    <p className="rpt-swatch-hex">{s.hex}</p>
-                    <p className="rpt-swatch-rgb">rgb({s.rgb})</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="rpt-grid-2" style={{ marginTop: 16 }}>
-              <div className="rpt-card">
-                <p className="rpt-card-label">المنطق اللوني</p>
-                <p className="rpt-card-text">{colorPalette.rationale}</p>
-              </div>
-              <div className="rpt-card">
-                <p className="rpt-card-label">سيكولوجية الألوان</p>
-                <p className="rpt-card-text">{colorPalette.psychologyNotes}</p>
-              </div>
-            </div>
-            <div className="rpt-card" style={{ marginTop: 12 }}>
-              <p className="rpt-card-label">دليل الاستخدام</p>
-              {[
-                { label: 'الرئيسي', value: colorPalette.usage.primary,   hex: colorPalette.primary.hex },
-                { label: 'الثانوي', value: colorPalette.usage.secondary, hex: colorPalette.secondary.hex },
-                { label: 'المميز',  value: colorPalette.usage.accent,    hex: colorPalette.accent.hex },
-              ].map(u => (
-                <div key={u.label} className="rpt-usage-row">
-                  <span className="rpt-usage-dot" style={{ background: u.hex }} />
-                  <span className="rpt-usage-label">{u.label}:</span>
-                  <span className="rpt-card-text">{u.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── SECTION 5: Logo Concepts ── */}
-        {logoConcepts && logoConcepts.length > 0 && (
-          <div className="rpt-section">
-            <div className="rpt-section-header" style={{ borderColor: '#f59e0b' }}>
-              <span className="rpt-section-num">٥</span>
-              <h2 className="rpt-section-title">أفكار الشعار</h2>
-            </div>
-            {logoConcepts.map((concept, i) => {
-              const conceptColor = [core.color, selectedPath?.colors[0] ?? '#2dd4bf', edge.color][i] ?? core.color;
-              return (
-                <div key={concept.id} className="rpt-concept">
-                  <div className="rpt-concept-header" style={{ borderColor: conceptColor }}>
-                    <span className="rpt-concept-num" style={{ background: conceptColor }}>{i + 1}</span>
-                    <div>
-                      <h3 className="rpt-concept-title" style={{ color: conceptColor }}>{concept.title}</h3>
-                      <p className="rpt-concept-style">{concept.style}</p>
-                    </div>
-                    {selectedConcept?.id === concept.id && (
-                      <span className="rpt-concept-selected" style={{ background: conceptColor }}>✓ المختار</span>
-                    )}
-                  </div>
-                  <p className="rpt-body-text" style={{ marginBottom: 10 }}>{concept.description}</p>
-                  <div className="rpt-grid-2">
-                    <div className="rpt-card">
-                      <p className="rpt-card-label">العناصر البصرية</p>
-                      <div className="rpt-tags">
-                        {concept.visualElements.map((el, j) => <span key={j} className="rpt-tag-gray">{el}</span>)}
-                      </div>
-                    </div>
-                    <div className="rpt-card">
-                      <p className="rpt-card-label">الرمزية والمعنى</p>
-                      <p className="rpt-card-text">{concept.symbolism}</p>
-                    </div>
-                    <div className="rpt-card">
-                      <p className="rpt-card-label">استخدام الألوان</p>
-                      <p className="rpt-card-text">{concept.colorUsage}</p>
-                    </div>
-                    <div className="rpt-card">
-                      <p className="rpt-card-label">توجه الخط</p>
-                      <p className="rpt-card-text">{concept.typography}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="rpt-footer">
-          <p>مُعدّ بواسطة مستشار الهوية البصرية · {today}</p>
-          <p style={{ color: '#2dd4bf' }}>{brandInput.name} · {core.nameAr} + {edge.nameAr}</p>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-brand-bg">
@@ -910,11 +1003,11 @@ export default function DesignGuideTool(props: Props) {
             {/* What's included */}
             <div className="grid md:grid-cols-2 gap-3">
               {[
-                { icon: '💡', label: 'جوهر العلامة',    done: !!brandEssence,   desc: brandEssence?.essence.slice(0,60) + '...' },
+                { icon: '💡', label: 'جوهر العلامة',    done: !!brandEssence,   desc: brandEssence ? `"${brandEssence.essence.slice(0, 55)}..."` : '' },
                 { icon: '🎨', label: 'التوجه الإبداعي', done: !!selectedPath,   desc: selectedPath?.title },
-                { icon: '📄', label: 'الموجز الإبداعي', done: !!creativeBrief,  desc: `${creativeBrief?.doList.length ?? 0} توجيه، ${creativeBrief?.dontList.length ?? 0} محظور` },
+                { icon: '📄', label: 'الموجز الإبداعي', done: !!creativeBrief,  desc: creativeBrief ? `${creativeBrief.doList.length} توجيه · ${creativeBrief.dontList.length} محظور` : '' },
                 { icon: '🖌', label: 'لوحة الألوان',    done: !!colorPalette,   desc: colorPalette ? `${[colorPalette.primary, colorPalette.secondary, colorPalette.accent].map(s => s.hex).join(' · ')}` : '' },
-                { icon: '✦', label: 'أفكار الشعار',    done: !!(logoConcepts?.length), desc: selectedConcept ? `المختار: ${selectedConcept.title.split(' — ')[0]}` : `${logoConcepts?.length ?? 0} أفكار` },
+                { icon: '✦',  label: 'أفكار الشعار',    done: !!(logoConcepts?.length), desc: selectedConcept ? `المختار: ${selectedConcept.title.split(' — ')[0]}` : `${logoConcepts?.length ?? 0} أفكار` },
               ].map(item => (
                 <div key={item.label} className={`card-elevated rounded-xl p-4 flex items-start gap-3 ${!item.done ? 'opacity-40' : ''}`}>
                   <div className="text-xl shrink-0">{item.icon}</div>
@@ -934,7 +1027,7 @@ export default function DesignGuideTool(props: Props) {
             {/* Action buttons */}
             <div className="flex flex-col gap-3">
               <button
-                onClick={printFullReport}
+                onClick={downloadReport}
                 className="btn-primary w-full py-4 rounded-xl text-base"
                 style={{ background: 'linear-gradient(135deg, #2dd4bf, #0891b2)' }}
               >
@@ -957,9 +1050,6 @@ export default function DesignGuideTool(props: Props) {
           </div>
         )}
       </div>
-
-      {/* ── HIDDEN PRINT LAYOUT ─────────────────────────────────── */}
-      <PrintReport />
     </div>
   );
 }
